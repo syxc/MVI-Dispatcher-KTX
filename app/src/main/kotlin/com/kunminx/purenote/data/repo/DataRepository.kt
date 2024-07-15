@@ -7,8 +7,7 @@ import com.kunminx.purenote.data.bean.Weather
 import com.kunminx.purenote.domain.intent.Api
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.flow
-import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -42,41 +41,30 @@ object DataRepository {
       .build()
   }
 
-  fun getNotes() = flow {
-    emit(RepoResult.GetNote(dataBase.noteDao().notes()))
-  }.flowOn(Dispatchers.IO)
+  suspend fun getNotes() = withContext(Dispatchers.IO) {
+    dataBase.noteDao().notes()
+  }
 
-  suspend fun insertNote(note: Note) = flow {
+  suspend fun insertNote(note: Note) = withContext(Dispatchers.IO) {
     dataBase.noteDao().insertNote(note)
-    emit(true)
-  }.flowOn(Dispatchers.IO)
+  }
 
-  suspend fun updateNote(note: Note) = flow {
+  suspend fun updateNote(note: Note) = withContext(Dispatchers.IO) {
     dataBase.noteDao().updateNote(note)
-    emit(true)
-  }.flowOn(Dispatchers.IO)
+  }
 
-  suspend fun deleteNote(note: Note) = flow {
+  suspend fun deleteNote(note: Note) = withContext(Dispatchers.IO) {
     dataBase.noteDao().deleteNote(note)
-    emit(true)
-  }.flowOn(Dispatchers.IO)
+  }
 
-  suspend fun getWeatherInfo(
-    api: String,
-    cityCode: String
-  ) = flow {
-    val service = mRetrofit!!.create(WeatherService::class.java)
-    try {
-      val weather = service.getWeatherInfo(api, cityCode, Api.API_KEY)
-      emit(RepoResult.WeatherInfo(weather.lives?.get(0)!!))
-    } catch (e: Exception) {
-      emit(RepoResult.Error(e.message.toString()))
+  suspend fun getWeatherInfo(api: String, cityCode: String): Pair<Weather.Live?, String> =
+    withContext(Dispatchers.IO) {
+      val service = mRetrofit!!.create(WeatherService::class.java)
+      try {
+        val weather = service.getWeatherInfo(api, cityCode, Api.API_KEY)
+        Pair(weather.lives?.get(0)!!, "")
+      } catch (e: Exception) {
+        Pair(null, e.message.toString())
+      }
     }
-  }.flowOn(Dispatchers.IO)
-}
-
-sealed class RepoResult {
-  data class GetNote(val notes: List<Note>) : RepoResult()
-  data class WeatherInfo(val live: Weather.Live) : RepoResult()
-  data class Error(val msg: String) : RepoResult()
 }

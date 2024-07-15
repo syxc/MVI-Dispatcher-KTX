@@ -25,29 +25,49 @@ class NoteRequester : MviDispatcherKTX<NoteIntent>() {
    * 消除 “mutable 样板代码 & mutable.emit 误用滥用 & repeatOnLifecycle + SharedFlow 错过时机” 等高频痛点。
    */
   override suspend fun onHandle(intent: NoteIntent) {
-    when (intent) {
-      is NoteIntent.InitItem -> sendResult(intent.copy())
+    try {
+      when (intent) {
+        is NoteIntent.InitItem -> {
+          sendResult(intent.copy())
+        }
 
-      is NoteIntent.MarkItem -> DataRepository.updateNote(intent.param!!)
-        .collect { sendResult(intent.copy(isSuccess = it)) }
+        is NoteIntent.MarkItem -> {
+          DataRepository.updateNote(intent.param!!)
+          sendResult(intent.copy(isSuccess = true))
+        }
 
-      is NoteIntent.UpdateItem -> DataRepository.updateNote(intent.param!!)
-        .collect { sendResult(intent.copy(isSuccess = it)) }
+        is NoteIntent.UpdateItem -> {
+          DataRepository.updateNote(intent.param!!)
+          sendResult(intent.copy(isSuccess = true))
+        }
 
-      is NoteIntent.AddItem -> DataRepository.insertNote(intent.param!!)
-        .collect { sendResult(intent.copy(isSuccess = it)) }
+        is NoteIntent.AddItem -> {
+          DataRepository.insertNote(intent.param!!)
+          sendResult(intent.copy(isSuccess = true))
+        }
 
-      is NoteIntent.RemoveItem -> DataRepository.deleteNote(intent.param!!)
-        .collect { sendResult(intent.copy(isSuccess = it)) }
+        is NoteIntent.RemoveItem -> {
+          DataRepository.deleteNote(intent.param!!)
+          sendResult(intent.copy(isSuccess = true))
+        }
 
-      is NoteIntent.GetNoteList -> DataRepository.getNotes()
-        .collect { sendResult(intent.copy(it.notes)) }
+        is NoteIntent.GetNoteList -> {
+          val notes = DataRepository.getNotes()
+          sendResult(intent.copy(notes))
+        }
 
-      is NoteIntent.ToppingItem -> {
-        DataRepository.updateNote(intent.param!!).collect {
-          if (it) DataRepository.getNotes().collect { sendResult(NoteIntent.GetNoteList(it.notes)) }
+        is NoteIntent.ToppingItem -> {
+          DataRepository.updateNote(intent.param!!)
+          val notes = DataRepository.getNotes()
+          sendResult(NoteIntent.GetNoteList(notes))
+        }
+
+        is NoteIntent.Error -> {
+          sendResult(intent)
         }
       }
+    } catch (e: Exception) {
+      input(NoteIntent.Error(e.toString()))
     }
   }
 }

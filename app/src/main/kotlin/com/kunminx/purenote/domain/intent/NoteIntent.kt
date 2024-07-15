@@ -46,4 +46,8 @@ sealed class NoteIntent {
   data class InitItem(
     val param: Note? = null
   ) : NoteIntent()
+
+  data class Error(
+    val msg: String? = null
+  ) : NoteIntent()
 }
